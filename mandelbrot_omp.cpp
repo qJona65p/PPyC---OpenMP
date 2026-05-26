@@ -87,17 +87,17 @@ static Pixel palette(double t) {
 //    condiciones de carrera.  Cada hilo escribe en posiciones distintas
 //    de `image`, sin solapamiento.
 
-Image generate_mandelbrot() {
+Image generate_mandelbrot_dynamic(int cs=8) {
     Image image(HEIGHT, vector<Pixel>(WIDTH));
-
+ 
     auto start = high_resolution_clock::now();
-
-    #pragma omp parallel for schedule(dynamic, 4) default(none) shared(image)
+ 
+    #pragma omp parallel for schedule(dynamic, cs) default(none) shared(image, cs)
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
             double cr = MIN_REAL + (MAX_REAL - MIN_REAL) * x / (WIDTH  - 1);
             double ci = MIN_IMAG + (MAX_IMAG - MIN_IMAG) * y / (HEIGHT - 1);
-
+ 
             double zr = 0.0, zi = 0.0;
             int iter = 0;
             while (zr * zr + zi * zi < 4.0 && iter < MAX_ITER) {
@@ -106,7 +106,7 @@ Image generate_mandelbrot() {
                 zr = tmp;
                 ++iter;
             }
-
+ 
             double t;
             if (iter == MAX_ITER) {
                 t = 1.0;
@@ -116,11 +116,91 @@ Image generate_mandelbrot() {
                 double mu     = iter + 1.0 - nu;
                 t = clamp(mu / MAX_ITER, 0.0, 1.0 - 1e-9);
             }
-
+ 
             image[y][x] = palette(t);
         }
     }
+ 
+    double elapsed = duration<double>(high_resolution_clock::now() - start).count();
+    cout << "  Tarea A completada en " << elapsed << " s"
+         << "  (" << omp_get_max_threads() << " hilos)\n";
+    return image;
+}
 
+Image generate_mandelbrot_static(int cs) {
+    Image image(HEIGHT, vector<Pixel>(WIDTH));
+ 
+    auto start = high_resolution_clock::now();
+ 
+    #pragma omp parallel for schedule(static, cs) default(none) shared(image, cs)
+    for (int y = 0; y < HEIGHT; ++y) {
+        for (int x = 0; x < WIDTH; ++x) {
+            double cr = MIN_REAL + (MAX_REAL - MIN_REAL) * x / (WIDTH  - 1);
+            double ci = MIN_IMAG + (MAX_IMAG - MIN_IMAG) * y / (HEIGHT - 1);
+ 
+            double zr = 0.0, zi = 0.0;
+            int iter = 0;
+            while (zr * zr + zi * zi < 4.0 && iter < MAX_ITER) {
+                double tmp = zr * zr - zi * zi + cr;
+                zi = 2.0 * zr * zi + ci;
+                zr = tmp;
+                ++iter;
+            }
+ 
+            double t;
+            if (iter == MAX_ITER) {
+                t = 1.0;
+            } else {
+                double log_zn = 0.5 * log(zr * zr + zi * zi);
+                double nu     = log(log_zn / log(2.0)) / log(2.0);
+                double mu     = iter + 1.0 - nu;
+                t = clamp(mu / MAX_ITER, 0.0, 1.0 - 1e-9);
+            }
+ 
+            image[y][x] = palette(t);
+        }
+    }
+ 
+    double elapsed = duration<double>(high_resolution_clock::now() - start).count();
+    cout << "  Tarea A completada en " << elapsed << " s"
+         << "  (" << omp_get_max_threads() << " hilos)\n";
+    return image;
+}
+
+Image generate_mandelbrot_guided(int cs) {
+    Image image(HEIGHT, vector<Pixel>(WIDTH));
+ 
+    auto start = high_resolution_clock::now();
+ 
+    #pragma omp parallel for schedule(guided, cs) default(none) shared(image, cs)
+    for (int y = 0; y < HEIGHT; ++y) {
+        for (int x = 0; x < WIDTH; ++x) {
+            double cr = MIN_REAL + (MAX_REAL - MIN_REAL) * x / (WIDTH  - 1);
+            double ci = MIN_IMAG + (MAX_IMAG - MIN_IMAG) * y / (HEIGHT - 1);
+ 
+            double zr = 0.0, zi = 0.0;
+            int iter = 0;
+            while (zr * zr + zi * zi < 4.0 && iter < MAX_ITER) {
+                double tmp = zr * zr - zi * zi + cr;
+                zi = 2.0 * zr * zi + ci;
+                zr = tmp;
+                ++iter;
+            }
+ 
+            double t;
+            if (iter == MAX_ITER) {
+                t = 1.0;
+            } else {
+                double log_zn = 0.5 * log(zr * zr + zi * zi);
+                double nu     = log(log_zn / log(2.0)) / log(2.0);
+                double mu     = iter + 1.0 - nu;
+                t = clamp(mu / MAX_ITER, 0.0, 1.0 - 1e-9);
+            }
+ 
+            image[y][x] = palette(t);
+        }
+    }
+ 
     double elapsed = duration<double>(high_resolution_clock::now() - start).count();
     cout << "  Tarea A completada en " << elapsed << " s"
          << "  (" << omp_get_max_threads() << " hilos)\n";
@@ -258,19 +338,37 @@ Image gaussian_blur(const Image& src, int radius = 15) {
 
 // ─── main ─────────────────────────────────────────────────────────────────────
 
+void scheduler_chunksize_test(int ceiling = 100) {
+    cout << "Probando distintos Chunk Size por scheduler\n";
+    for(int cs=1; cs<ceiling; cs*=2) {
+        cout << "Chunk Size = " << cs << endl;
+        cout << "[Tarea A] Generando fractal scheduler(dynamic)... ";
+        generate_mandelbrot_dynamic(cs);
+
+        cout << "[Tarea A] Generando fractal scheduler(static)... ";
+        generate_mandelbrot_static(cs);
+        
+        cout << "[Tarea A] Generando fractal scheduler(guided)... ";
+       generate_mandelbrot_guided(cs);
+    }
+}
+
 int main() {
     auto t0 = high_resolution_clock::now();
 
     cout << "=== Mandelbrot paralelo (OpenMP)  " << WIDTH << "x" << HEIGHT << " ===\n";
     cout << "    Hilos disponibles: " << omp_get_max_threads() << "\n\n";
 
+    scheduler_chunksize_test(150);
+    /*
     cout << "[Tarea A] Generando fractal...\n";
-    Image original = generate_mandelbrot();
+    Image original = generate_mandelbrot_dynamic();
     save_ppm(original, "mandelbrot_original.ppm");
-
+    
     cout << "\n[Tarea B] Aplicando Gaussian Blur (radio 15)...\n";
     Image blurred = gaussian_blur(original, 15);
     save_ppm(blurred, "mandelbrot_blurred.ppm");
+    */
 
     double total = duration<double>(high_resolution_clock::now() - t0).count();
     cout << "\nTiempo total: " << total << " s\n";
