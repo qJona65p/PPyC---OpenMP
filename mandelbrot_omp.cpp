@@ -23,8 +23,6 @@
  * Salida:
  *   mandelbrot_original.ppm   (~96 MB, formato P6 binario)
  *   mandelbrot_blurred.ppm    (misma resolución, post-filtro)
- * 
- * Tiempo de ejecución promedio de 3.767764 segundos
  */
 
 #include <iostream>
@@ -36,7 +34,7 @@
 #include <numeric>
 #include <unordered_map>
 #include <stdexcept>
-#include <omp.h>          // ← única cabecera extra respecto a la versión secuencial
+#include <omp.h>
 
 using namespace std;
 using namespace std::chrono;
@@ -336,6 +334,105 @@ Image gaussian_blur(const Image& src, int radius = 15) {
     return out;
 }
 
+// ─── Histograma ───────────────────────────────────────────────────────────────
+
+using ColorMap = unordered_map<uint32_t, int>;
+ 
+// Empaqueta un Pixel en uint32_t (0x00RRGGBB)
+static inline uint32_t pack(const Pixel& p) {
+    return (uint32_t(p.r) << 16) | (uint32_t(p.g) << 8) | uint32_t(p.b);
+}
+
+ColorMap make_histogram_critical(Image& img, int top_n = 10) {
+    cout << "\nHistograma usando critical...";
+    auto start = high_resolution_clock::now();
+    ColorMap global_map;
+
+    #pragma omp parallel default(none) shared(img, global_map)
+    {
+        #pragma omp for schedule(static)
+        for (int y = 0; y < HEIGHT; ++y) {
+            for (int x = 0; x < WIDTH; ++x) {
+                uint32_t color = pack(img[y][x]);
+
+                #pragma omp critical (hist_lock)
+                {
+                    global_map[color]++;
+                }
+            }
+        }
+    }
+
+    double elapsed = duration<double>(high_resolution_clock::now() - start).count();
+    cout << " " << elapsed << " s" << "  |  " << global_map.size() << " colores únicos\n";
+
+    return global_map;
+}
+
+ColorMap make_histogram_local(const Image& img) {
+    cout << "\n\nHistograma con variable locales...";
+    auto start = high_resolution_clock::now();
+
+    int nthreads = omp_get_max_threads();
+    vector<ColorMap> local_maps(nthreads);
+
+    // ── Fase 1: conteo paralelo, sin ningún lock ──────────────────────────
+    //
+    // Cada hilo obtiene su índice con omp_get_thread_num() y escribe
+    // ÚNICAMENTE en local_maps[tid].  No hay memoria compartida en
+    // escritura → no hay condición de carrera.
+    #pragma omp parallel default(none) shared(img, local_maps)
+    {
+        int tid = omp_get_thread_num();
+        ColorMap& my_map = local_maps[tid];
+
+        #pragma omp for schedule(static)
+        for (int y = 0; y < HEIGHT; ++y)
+            for (int x = 0; x < WIDTH; ++x)
+                my_map[pack(img[y][x])]++;
+    }
+
+    // ── Fase 2: fusión secuencial ─────────────────────────────────────────
+    //
+    // Recorremos cada mapa local y acumulamos en el global.
+    // Complejidad: O(sum de colores únicos por hilo) ≪ O(WIDTH × HEIGHT).
+    ColorMap global_map;
+    
+    for (auto& lm : local_maps)
+        for (auto& [color, count] : lm)
+            global_map[color] += count;
+
+    double elapsed = duration<double>(high_resolution_clock::now() - start).count();
+    cout << " " << elapsed << " s" << "  |  " << global_map.size() << " colores únicos\n";
+    return global_map;
+}
+
+void print_histogram(ColorMap global_map, int top_n = 10) {
+    // ── Top-N colores más frecuentes ──
+    vector<pair<uint32_t, int>> sorted_colors(global_map.begin(), global_map.end());
+    int show = min(top_n, (int)sorted_colors.size());
+    partial_sort(sorted_colors.begin(),
+    sorted_colors.begin() + show,
+    sorted_colors.end(),
+    [](const auto& a, const auto& b){ return a.second > b.second; });
+     
+    cout << "\n  Top " << show << " colores más frecuentes:\n";
+    cout << " " << string(39, '-') << "\n";
+    cout << "  #   R    G    B     HEX      Píxeles\n";
+    cout << " " << string(39, '-') << "\n";
+    for (int i = 0; i < show; ++i) {
+        uint32_t c = sorted_colors[i].first;
+        int      n = sorted_colors[i].second;
+        uint8_t  r = (c >> 16) & 0xFF;
+        uint8_t  g = (c >>  8) & 0xFF;
+        uint8_t  b =  c        & 0xFF;
+        char hex[8];
+        snprintf(hex, sizeof(hex), "#%02X%02X%02X", r, g, b);
+        printf("  %-3d %-4d %-4d %-4d  %s  %d\n", i+1, r, g, b, hex, n);
+    }
+    cout << " " << string(39, '-') << "\n";
+}
+
 // ─── main ─────────────────────────────────────────────────────────────────────
 
 void scheduler_chunksize_test(int ceiling = 100) {
@@ -359,8 +456,8 @@ int main() {
     cout << "=== Mandelbrot paralelo (OpenMP)  " << WIDTH << "x" << HEIGHT << " ===\n";
     cout << "    Hilos disponibles: " << omp_get_max_threads() << "\n\n";
 
-    scheduler_chunksize_test(150);
-    /*
+    //scheduler_chunksize_test(150);
+
     cout << "[Tarea A] Generando fractal...\n";
     Image original = generate_mandelbrot_dynamic();
     save_ppm(original, "mandelbrot_original.ppm");
@@ -368,7 +465,9 @@ int main() {
     cout << "\n[Tarea B] Aplicando Gaussian Blur (radio 15)...\n";
     Image blurred = gaussian_blur(original, 15);
     save_ppm(blurred, "mandelbrot_blurred.ppm");
-    */
+
+    print_histogram(make_histogram_critical(original));
+    print_histogram(make_histogram_local(original));
 
     double total = duration<double>(high_resolution_clock::now() - t0).count();
     cout << "\nTiempo total: " << total << " s\n";
