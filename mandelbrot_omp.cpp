@@ -19,6 +19,14 @@
  * Control de hilos (ejemplos):
  *   ./mandelbrot_omp                  # usa todos los núcleos disponibles
  *   OMP_NUM_THREADS=8 ./mandelbrot_omp
+ * 
+ * Environment variables para afinidad:
+ *   OMP_PLACES=cores
+ *   OMP_PROC_BIND=threads
+ *   OMP_NUM_THREADS=16
+ * 
+ * Monitoreo de cache:
+ *   perf stat -e cache-misses,cache-references ./mandelbrot_omp
  *
  * Salida:
  *   mandelbrot_original.ppm   (~96 MB, formato P6 binario)
@@ -223,7 +231,7 @@ void save_ppm(const Image& img, const string& filename) {
     cout << "  Guardado: " << filename << "\n";
 }
 
-// ─── Tarea B: Gaussian Blur separable en paralelo ────────────────────────────
+// ─── Tarea B: Gaussian Blur separable en paralelo ─────────────────────────────
 //
 //  Estrategia de paralelización:
 //  • Separación de canales: paralelizada por filas (schedule static,
