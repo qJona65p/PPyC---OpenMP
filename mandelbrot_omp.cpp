@@ -14,7 +14,7 @@
  *          schedule(static), ya que la carga es uniforme.
  *
  * Compilación sugerida:
- *   g++ -O2 -std=c++17 -fopenmp -o mandelbrot_omp mandelbrot_omp.cpp
+ *   g++ -O3 -std=c++17 -fopenmp -march=native -ftree-vectorize -o mandelbrot_omp mandelbrot_omp.cpp
  *
  * Control de hilos (ejemplos):
  *   ./mandelbrot_omp                  # usa todos los núcleos disponibles
@@ -265,16 +265,13 @@ Image gaussian_blur(const Image& src, int radius = 15) {
 
     auto start = high_resolution_clock::now();
 
-    // ── Pase horizontal (paralelo por filas) ──
-    //
-    //  Cada hilo procesa filas independientes; las lecturas de rch/gch/bch
-    //  son de solo lectura → sin carreras.  Las escrituras en rh/gh/bh
-    //  van a posiciones y*WIDTH+x únicas por hilo.
+    // ── Pase horizontal ──
     #pragma omp parallel for schedule(static) default(none) \
             shared(rch, gch, bch, rh, gh, bh, kernel) firstprivate(radius)
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
             double vr = 0, vg = 0, vb = 0;
+            #pragma omp simd reduction(+:vr,vg,vb)
             for (int k = -radius; k <= radius; ++k) {
                 int nx  = clamp(x + k, 0, WIDTH - 1);
                 double w = kernel[k + radius];
@@ -290,15 +287,13 @@ Image gaussian_blur(const Image& src, int radius = 15) {
         }
     }
 
-    // ── Pase vertical (paralelo por filas) ──
-    //
-    //  Lee de rh/gh/bh (ya completos del pase anterior, barrera implícita
-    //  al final del pragma anterior) y escribe en rout/gout/bout.
+    // ── Pase vertical ──
     #pragma omp parallel for schedule(static) default(none) \
             shared(rh, gh, bh, rout, gout, bout, kernel) firstprivate(radius)
     for (int y = 0; y < HEIGHT; ++y) {
         for (int x = 0; x < WIDTH; ++x) {
             double vr = 0, vg = 0, vb = 0;
+            #pragma omp simd reduction(+:vr,vg,vb)
             for (int k = -radius; k <= radius; ++k) {
                 int ny  = clamp(y + k, 0, HEIGHT - 1);
                 double w = kernel[k + radius];
@@ -466,8 +461,8 @@ int main() {
     Image blurred = gaussian_blur(original, 15);
     save_ppm(blurred, "mandelbrot_blurred.ppm");
 
-    print_histogram(make_histogram_critical(original));
-    print_histogram(make_histogram_local(original));
+    //print_histogram(make_histogram_critical(original));
+    //print_histogram(make_histogram_local(original));
 
     double total = duration<double>(high_resolution_clock::now() - t0).count();
     cout << "\nTiempo total: " << total << " s\n";

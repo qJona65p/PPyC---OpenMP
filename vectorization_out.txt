@@ -1,0 +1,47 @@
+~/Documents/GitHub/PPyC---OpenMP$ g++ -O3 -std=c++17 -fopenmp -march=native -ftree-vectorize -fopt-info-vec-optimized -o mandelbrot_omp mandelbrot_omp.cpp
+mandelbrot_omp.cpp:259:27: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:259:27: optimized:  loop versioned for vectorization because of possible aliasing
+mandelbrot_omp.cpp:274:21: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:276:35: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:296:21: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:298:35: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:321:27: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:321:27: optimized:  loop versioned for vectorization because of possible aliasing
+mandelbrot_omp.cpp:323:23: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:398:25: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:398:25: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:398:25: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:398:25: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:249:20: optimized: loop vectorized using 32 byte vectors
+mandelbrot_omp.cpp:249:20: optimized: loop vectorized using 16 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:291:13: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:291:13: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:291:13: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:291:13: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:291:13: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:16: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:398:25: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:319:13: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/basic_ios.h:462:2: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/fstream:870:9: optimized: basic block part vectorized using 32 byte vectors
+mandelbrot_omp.cpp:346:13: optimized: basic block part vectorized using 32 byte vectors
+/usr/include/c++/13/bits/stl_vector.h:100:4: optimized: basic block part vectorized using 32 byte vectors
