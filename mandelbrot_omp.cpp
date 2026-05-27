@@ -453,13 +453,36 @@ void scheduler_chunksize_test(int ceiling = 100) {
     }
 }
 
+void thread_count_test(){
+    cout << "Test de tiempo de ejecucion vs numero de hilos";
+    auto t0 = high_resolution_clock::now();
+    double total = 0;
+    for (int i = 1; i <= 16; i++) {
+        t0 = high_resolution_clock::now();
+
+        omp_set_num_threads(i);
+        cout << "[Tarea A] Generando fractal...\n";
+        Image original = generate_mandelbrot_dynamic();
+        save_ppm(original, "mandelbrot_original.ppm");
+        
+        cout << "\n[Tarea B] Aplicando Gaussian Blur (radio 15)...\n";
+        Image blurred = gaussian_blur(original, 15);
+        save_ppm(blurred, "mandelbrot_blurred.ppm");
+
+        total = duration<double>(high_resolution_clock::now() - t0).count();
+        cout << "\nTiempo con " << i << " hilos: " << total << " s\n\n";
+    }
+}
+
 int main() {
     auto t0 = high_resolution_clock::now();
 
     cout << "=== Mandelbrot paralelo (OpenMP)  " << WIDTH << "x" << HEIGHT << " ===\n";
-    cout << "    Hilos disponibles: " << omp_get_max_threads() << "\n\n";
+    omp_set_num_threads(16);
 
     //scheduler_chunksize_test(150);
+
+    //thread_count_test();
 
     cout << "[Tarea A] Generando fractal...\n";
     Image original = generate_mandelbrot_dynamic();
@@ -467,11 +490,11 @@ int main() {
     
     cout << "\n[Tarea B] Aplicando Gaussian Blur (radio 15)...\n";
     Image blurred = gaussian_blur(original, 15);
-    save_ppm(blurred, "mandelbrot_blurred.ppm");
-
+        save_ppm(blurred, "mandelbrot_blurred.ppm");
+    
     //print_histogram(make_histogram_critical(original));
     //print_histogram(make_histogram_local(original));
-
+    
     double total = duration<double>(high_resolution_clock::now() - t0).count();
     cout << "\nTiempo total: " << total << " s\n";
     return 0;
