@@ -490,7 +490,7 @@ int main() {
     
     cout << "\n[Tarea B] Aplicando Gaussian Blur (radio 15)...\n";
     Image blurred = gaussian_blur(original, 15);
-        save_ppm(blurred, "mandelbrot_blurred.ppm");
+    save_ppm(blurred, "mandelbrot_blurred.ppm");
     
     //print_histogram(make_histogram_critical(original));
     //print_histogram(make_histogram_local(original));
